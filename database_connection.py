@@ -23,9 +23,17 @@ def run_select(query):
     return cursor.fetchall()
 
 
+def execute_command(query):
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(query)
+    # cursor.fetchone()
+    conn.commit()
+    conn.close()
+
 def run_select_for_json(query):
     df = pd.read_sql_query(query, _get_connection())
-    return df.to_json()
+    return df.to_json(orient='records')
 
 
 if __name__ == "__main__":
