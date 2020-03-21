@@ -1,5 +1,5 @@
 #!flask/bin/python
-from flask import Flask
+from flask import Flask, jsonify
 from database_connection import run_select_for_json, execute_command
 
 app = Flask(__name__)
@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return "Hello, World!"
+    return jsonify(hello="Hello, World!")
 
 
 @app.route('/get_user/<username>', methods=['GET'])
