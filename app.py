@@ -25,7 +25,7 @@ def get_tank_info(username):
 @app.route('/get_work_list/', methods=['GET'])
 def get_work_list():
     return run_select_for_json(
-        f'select mw.pk, mw.timestamp, u.username, u.house_number, tt.tank_type, te.estimate from manager_worklist as mw join "user" u on mw.resident_fk = u.pk join tank_types tt on u.tank_type_fk = tt.pk join time_estimates te on mw.time_estimate_fk = te.pk')
+        f'select mw.pk, to_char(mw.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as timestamp, u.username, u.house_number, tt.tank_type, te.estimate from manager_worklist as mw join "user" u on mw.resident_fk = u.pk join tank_types tt on u.tank_type_fk = tt.pk join time_estimates te on mw.time_estimate_fk = te.pk')
 
 
 @app.route('/add_user/<user_name>/<user_type>/<user_pin>')
@@ -40,6 +40,7 @@ def add_resident(user_name, house_number, user_pin):
     execute_command(
         f"insert into \"user\" (username, user_type_fk, house_number, pin) values ('{user_name}', 1, {house_number}, '{user_pin}')")
     return run_select_for_json('select * from "user";')
+
 
 @app.route('/app_login/', methods=['GET'])
 def get_app_login():
