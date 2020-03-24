@@ -19,7 +19,7 @@ def get_user(username):
 @app.route('/get_tank_info/<username>', methods=['GET'])
 def get_tank_info(username):
     return run_select_for_json(
-        f'select username, pin, tr.current_height, tr.timestamp from "user" as u join tank_readings tr on u.pk = tr.tank_owner_fk where username = \'{username}\' order by tr.timestamp desc limit 1;')
+        f'select username, pin, tr.current_height, to_char(tr.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as timestamp from "user" as u join tank_readings tr on u.pk = tr.tank_owner_fk where username = \'{username}\' order by tr.timestamp desc limit 1;')
 
 
 @app.route('/get_work_list/', methods=['GET'])
@@ -35,6 +35,12 @@ def add_user(user_name, user_type, user_pin):
     return run_select_for_json('select * from "user";')
 
 
+@app.route('/add_resident/<user_name>/<house_number>/<user_pin>')
+def add_resident(user_name, house_number, user_pin):
+    execute_command(
+        f"insert into \"user\" (username, user_type_fk, house_number, pin) values ('{user_name}', 1, {house_number}, '{user_pin}')")
+    return run_select_for_json('select * from "user";')
+
 @app.route('/app_login/', methods=['GET'])
 def get_app_login():
     return run_select_for_json("SELECT * FROM app_login")
@@ -47,4 +53,4 @@ def remove_user(user_name):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True)
