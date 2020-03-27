@@ -27,9 +27,9 @@ def execute_command(query):
     conn = _get_connection()
     cursor = conn.cursor()
     cursor.execute(query)
-    # cursor.fetchone()
     conn.commit()
     conn.close()
+
 
 def run_select_for_json(query):
     df = pd.read_sql_query(query, _get_connection())
@@ -37,4 +37,4 @@ def run_select_for_json(query):
 
 
 if __name__ == "__main__":
-    print(run_select_for_json("select * from tank_model;"))
+    print(run_select_for_json("select * from app_worklist;"))
