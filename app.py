@@ -35,10 +35,18 @@ def add_user(user_name, user_type, user_pin):
     return run_select_for_json('select * from "user";')
 
 
-@app.route('/add_resident/<user_name>/<house_number>/<user_pin>')
-def add_resident(user_name, house_number, user_pin):
+# @app.route('/add_resident/<user_name>/<house_number>/<user_pin>')
+# def add_resident(user_name, house_number, user_pin):
+#     execute_command(
+#         f"insert into \"user\" (username, user_type_fk, house_number, pin) values ('{user_name}', 1, {house_number}, '{user_pin}')")
+#     return run_select_for_json('select * from "user";')
+
+
+@app.route('/add_resident/<user_name>/<house_number>/<user_pin>/<water_tank_fk>/<sewage_tank_fk>')
+def add_resident(user_name, house_number, user_pin, water_tank_fk, sewage_tank_fk):
     execute_command(
-        f"insert into \"user\" (username, user_type_fk, house_number, pin) values ('{user_name}', 1, {house_number}, '{user_pin}')")
+        f"insert into \"user\" (username, house_number, pin, water_tank_fk, sewage_tank_fk) "
+        f"values ('{user_name}', {house_number}, '{user_pin}', '{water_tank_fk}', '{sewage_tank_fk}')")
     return run_select_for_json('select * from "user";')
 
 
@@ -53,19 +61,19 @@ def get_app_login():
 #     return run_select_for_json('select * from "user";')
 
 @app.route('/remove_resident/<resident_user_name>')
-def remove_user(resident_user_name):
+def remove_resident(resident_user_name):
     execute_command(f'delete from residents where username = \'{resident_user_name}\'')
     return run_select_for_json('select * from residents;')
 
 
 @app.route('/remove_manager/<manager_user_name>')
-def remove_user(manager_user_name):
+def remove_manager(manager_user_name):
     execute_command(f'delete from managers where username = \'{manager_user_name}\'')
     return run_select_for_json('select * from residents;')
 
 
 @app.route('/remove_driver/<driver_user_name>')
-def remove_user(driver_user_name):
+def remove_driver(driver_user_name):
     execute_command(f'delete from drivers where username = \'{driver_user_name}\'')
     return run_select_for_json('select * from residents;')
 
