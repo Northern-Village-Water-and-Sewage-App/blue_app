@@ -13,13 +13,24 @@ def index():
 @app.route('/get_user/<username>', methods=['GET'])
 def get_user(username):
     return run_select_for_json(
-        f'select username, pin, ut.user_type from "user" as u join user_types ut on u.user_type_fk = ut.pk where username = \'{username}\';')
+        f'select * from app_login where username = \'{username}\';')
 
 
 @app.route('/get_tank_info/<username>', methods=['GET'])
 def get_tank_info(username):
     return run_select_for_json(
-        f'select username, pin, tr.current_height, to_char(tr.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as timestamp from "user" as u join tank_readings tr on u.pk = tr.tank_owner_fk where username = \'{username}\' order by tr.timestamp desc limit 1;')
+        f'select '
+        f'username, '
+        f'status as sewage_tank_status, '
+        f'to_char(str.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as sewage_tank_timestamp, '
+        f'wtr.current_height as water_tank_height, '
+        f'to_char(wtr.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as water_tank_timestamp '
+        f'from residents '
+        f'join sewage_tank_readings str on residents.pk = str.tank_owner_fk '
+        f'join water_tank_readings wtr on residents.pk = wtr.tank_owner_fk '
+        f'where username = \'{username}\' '
+        f'order by str.timestamp, wtr.timestamp desc '
+        f'limit 1')
 
 
 @app.route('/get_work_list/', methods=['GET'])
@@ -28,37 +39,26 @@ def get_work_list():
         f'select mw.pk, to_char(mw.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as timestamp, u.username, u.house_number, tt.tank_type, te.estimate from manager_worklist as mw join "user" u on mw.resident_fk = u.pk join tank_types tt on u.tank_type_fk = tt.pk join time_estimates te on mw.time_estimate_fk = te.pk')
 
 
-@app.route('/add_user/<user_name>/<user_type>/<user_pin>')
-def add_user(user_name, user_type, user_pin):
+@app.route('/add_manager/<user_name>/<user_pin>')
+def add_manager(user_name, user_pin):
     execute_command(
-        f"insert into \"user\" (username, user_type_fk, pin) values ('{user_name}', {user_type}, '{user_pin}')")
-    return run_select_for_json('select * from "user";')
+        f"insert into managers (username, pin) values ('{user_name}', '{user_pin}')")
+    return run_select_for_json('select * from managers;')
 
 
-# @app.route('/add_resident/<user_name>/<house_number>/<user_pin>')
-# def add_resident(user_name, house_number, user_pin):
-#     execute_command(
-#         f"insert into \"user\" (username, user_type_fk, house_number, pin) values ('{user_name}', 1, {house_number}, '{user_pin}')")
-#     return run_select_for_json('select * from "user";')
+@app.route('/add_driver/<user_name>/<user_pin>')
+def add_driver(user_name, user_pin):
+    execute_command(
+        f"insert into drivers (username, pin) values ('{user_name}', '{user_pin}')")
+    return run_select_for_json('select * from drivers;')
 
 
 @app.route('/add_resident/<user_name>/<house_number>/<user_pin>/<water_tank_fk>/<sewage_tank_fk>')
 def add_resident(user_name, house_number, user_pin, water_tank_fk, sewage_tank_fk):
     execute_command(
-        f"insert into \"user\" (username, house_number, pin, water_tank_fk, sewage_tank_fk) "
-        f"values ('{user_name}', {house_number}, '{user_pin}', '{water_tank_fk}', '{sewage_tank_fk}')")
-    return run_select_for_json('select * from "user";')
+        f"insert into residents (username, house_number, pin, water_tank_fk, sewage_tank_fk) values ('{user_name}', {house_number}, '{user_pin}', {water_tank_fk}, {sewage_tank_fk})")
+    return run_select_for_json('select * from residents;')
 
-
-@app.route('/app_login/', methods=['GET'])
-def get_app_login():
-    return run_select_for_json("SELECT * FROM app_login")
-
-
-# @app.route('/remove_user/<user_name>')
-# def remove_user(user_name):
-#     execute_command(f'delete from "user" where username = \'{user_name}\'')
-#     return run_select_for_json('select * from "user";')
 
 @app.route('/remove_resident/<resident_user_name>')
 def remove_resident(resident_user_name):
@@ -79,4 +79,4 @@ def remove_driver(driver_user_name):
 
 
 if __name__ == '__main__':
-    app.run(debug=False, host="0.0.0.0")
+    app.run(debug=True, port=1234)  # TODO: Modify this before uploading to the server
