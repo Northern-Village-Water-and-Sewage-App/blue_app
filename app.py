@@ -47,10 +47,27 @@ def get_app_login():
     return run_select_for_json("SELECT * FROM app_login")
 
 
-@app.route('/remove_user/<user_name>')
-def remove_user(user_name):
-    execute_command(f'delete from "user" where username = \'{user_name}\'')
-    return run_select_for_json('select * from "user";')
+# @app.route('/remove_user/<user_name>')
+# def remove_user(user_name):
+#     execute_command(f'delete from "user" where username = \'{user_name}\'')
+#     return run_select_for_json('select * from "user";')
+
+@app.route('/remove_resident/<resident_user_name>')
+def remove_user(resident_user_name):
+    execute_command(f'delete from residents where username = \'{resident_user_name}\'')
+    return run_select_for_json('select * from residents;')
+
+
+@app.route('/remove_manager/<manager_user_name>')
+def remove_user(manager_user_name):
+    execute_command(f'delete from managers where username = \'{manager_user_name}\'')
+    return run_select_for_json('select * from residents;')
+
+
+@app.route('/remove_driver/<driver_user_name>')
+def remove_user(driver_user_name):
+    execute_command(f'delete from drivers where username = \'{driver_user_name}\'')
+    return run_select_for_json('select * from residents;')
 
 
 if __name__ == '__main__':
