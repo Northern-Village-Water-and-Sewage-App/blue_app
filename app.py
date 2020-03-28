@@ -1,6 +1,6 @@
 #!flask/bin/python
 from flask import Flask, jsonify
-from database_connection import run_select_for_json, execute_command
+from database_connection import run_select_for_json, execute_command, get_query_result_as_df, pd
 
 app = Flask(__name__)
 
@@ -35,8 +35,9 @@ def get_tank_info(username):
 
 @app.route('/get_work_list/', methods=['GET'])
 def get_work_list():
-    return run_select_for_json(
-        f'select mw.pk, to_char(mw.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as timestamp, u.username, u.house_number, tt.tank_type, te.estimate from manager_worklist as mw join "user" u on mw.resident_fk = u.pk join tank_types tt on u.tank_type_fk = tt.pk join time_estimates te on mw.time_estimate_fk = te.pk')
+    df = get_query_result_as_df('select * from app_worklist')
+    max_times = df.groupby(['username', 'tank_type']).timestamp.transform(max)
+    return df.loc[df.timestamp == max_times].to_json(orient='records')
 
 
 @app.route('/add_manager/<user_name>/<user_pin>')
@@ -69,13 +70,13 @@ def remove_resident(resident_user_name):
 @app.route('/remove_manager/<manager_user_name>')
 def remove_manager(manager_user_name):
     execute_command(f'delete from managers where username = \'{manager_user_name}\'')
-    return run_select_for_json('select * from residents;')
+    return run_select_for_json('select * from managers;')
 
 
 @app.route('/remove_driver/<driver_user_name>')
 def remove_driver(driver_user_name):
     execute_command(f'delete from drivers where username = \'{driver_user_name}\'')
-    return run_select_for_json('select * from residents;')
+    return run_select_for_json('select * from drivers;')
 
 
 if __name__ == '__main__':
