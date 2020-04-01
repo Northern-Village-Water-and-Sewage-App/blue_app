@@ -10,6 +10,12 @@ def index():
     return jsonify(hello="Hello, World!")
 
 
+@app.route('/add_report/<complaint_type_fk>/<company_fk>/<complaint>/')
+def add_report(complaint_type_fk, company_fk, complaint):
+    execute_command(
+        f'insert into report (complaint_type_fk, company_fk, complaint) values ({complaint_type_fk}, {company_fk}, {complaint})')
+
+
 @app.route('/get_user/<username>', methods=['GET'])
 def get_user(username):
     return run_select_for_json(
