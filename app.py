@@ -28,6 +28,11 @@ def add_message(message):
     return run_select_for_json("select * from message")
 
 
+@app.route('/get_latest_message/')
+def get_latest_message():
+    return run_select_for_json("select * from message order by timestamp desc limit 1")
+
+
 @app.route('/get_user/<username>', methods=['GET'])
 def get_user(username):
     return run_select_for_json(
