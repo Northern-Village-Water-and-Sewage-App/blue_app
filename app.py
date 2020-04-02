@@ -41,19 +41,20 @@ def get_user(username):
 
 @app.route('/get_tank_info/<username>', methods=['GET'])
 def get_tank_info(username):
-    return run_select_for_json(
-        f'select '
-        f'username, '
-        f'status as sewage_tank_status, '
-        f'to_char(str.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as sewage_tank_timestamp, '
-        f'wtr.current_height as water_tank_height, '
-        f'to_char(wtr.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as water_tank_timestamp '
-        f'from residents '
-        f'join sewage_tank_readings str on residents.pk = str.tank_owner_fk '
-        f'join water_tank_readings wtr on residents.pk = wtr.tank_owner_fk '
-        f'where username = \'{username}\' '
-        f'order by str.timestamp, wtr.timestamp desc '
-        f'limit 1')
+    return run_select_for_json(f'select '
+                               f'username, '
+                               f'status as sewage_tank_status, '
+                               f'to_char(str.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as sewage_tank_timestamp, '
+                               f'wtr.current_height/wtm.tank_height * 100 as water_tank_height_percentage, '
+                               f'wtr.current_height as water_tank_height, '
+                               f'to_char(wtr.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as water_tank_timestamp '
+                               f'from residents join sewage_tank_readings str on '
+                               f'residents.pk = str.tank_owner_fk '
+                               f'join water_tank_readings wtr on residents.pk = wtr.tank_owner_fk '
+                               f'join water_tanks_models wtm on residents.water_tank_fk = wtm.pk '
+                               f'where username = \'{username}\' '
+                               f'order by str.timestamp, wtr.timestamp desc '
+                               f'limit 1;')
 
 
 @app.route('/get_work_list/', methods=['GET'])
