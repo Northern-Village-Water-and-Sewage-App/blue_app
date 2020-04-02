@@ -18,7 +18,7 @@ def get_reports():
 @app.route('/add_report/<complaint_type_fk>/<company_fk>/<complaint>/')
 def add_report(complaint_type_fk, company_fk, complaint):
     execute_command(
-        f"insert into report (complaint_type_fk, company_fk, complaint) values ({complaint_type_fk}, {company_fk}, '{complaint}')")
+        f"insert into reports (complaint_type_fk, company_fk, complaint) values ({complaint_type_fk}, {company_fk}, '{complaint}')")
     return run_select_for_json("select * from app_reports;")
 
 
