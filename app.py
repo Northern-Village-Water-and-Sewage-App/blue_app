@@ -17,6 +17,12 @@ def update_demand(pk, time_estimate_fk):
     return run_select_for_json('select * from app_worklist')
 
 
+@app.route('/demand_completed/pk')
+def demand_completed(pk):
+    execute_command(f'delete from manager_worklist where pk = {pk};')
+    return run_select_for_json("select * from app_worklist")
+
+
 @app.route('/get_reports/')
 def get_reports():
     return run_select_for_json('select * from app_reports')
