@@ -15,6 +15,20 @@ def get_reports():
     return run_select_for_json('select * from app_reports')
 
 
+@app.route('/disable_resident/<resident_username>')
+def disable_resident(resident_username):
+    execute_command(
+        f"update residents set resident_disabled = true where username = '{resident_username}';")
+    return run_select_for_json('select * from resident;')
+
+
+@app.route('/enable_resident/<resident_username>')
+def enable_resident(resident_username):
+    execute_command(
+        f"update residents set resident_disabled = false where username = '{resident_username}';")
+    return run_select_for_json('select * from resident;')
+
+
 @app.route('/add_report/<complaint_type_fk>/<company_fk>/<complaint>/')
 def add_report(complaint_type_fk, company_fk, complaint):
     execute_command(
@@ -30,7 +44,8 @@ def add_message(message):
 
 @app.route('/get_latest_message/')
 def get_latest_message():
-    return run_select_for_json("select message.messages from message order by timestamp desc limit 1")
+    return run_select_for_json(
+        "select message.messages from message order by timestamp desc limit 1")
 
 
 @app.route('/get_user/<username>', methods=['GET'])
