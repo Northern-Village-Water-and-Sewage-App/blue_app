@@ -19,14 +19,14 @@ def get_reports():
 def disable_resident(resident_username):
     execute_command(
         f"update residents set resident_disabled = true where username = '{resident_username}';")
-    return run_select_for_json('select * from resident;')
+    return run_select_for_json('select * from residents;')
 
 
 @app.route('/enable_resident/<resident_username>')
 def enable_resident(resident_username):
     execute_command(
         f"update residents set resident_disabled = false where username = '{resident_username}';")
-    return run_select_for_json('select * from resident;')
+    return run_select_for_json('select * from residents;')
 
 
 @app.route('/add_report/<complaint_type_fk>/<company_fk>/<complaint>/')
