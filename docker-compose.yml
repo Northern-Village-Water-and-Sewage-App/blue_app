@@ -7,7 +7,7 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_PASSWORD: ZEgB5rY4f66FPyxBk8FVb7MM
+      POSTGRES_PASSWORD: xyz9uDFshJduKqXbC9efMjqM
     ports:
         - 32032:5432
 
