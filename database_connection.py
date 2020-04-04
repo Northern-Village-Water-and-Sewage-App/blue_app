@@ -2,9 +2,9 @@ import psycopg2
 import pandas as pd
 
 USER = "postgres"
-PASSWORD = "abcd1234"
-HOST = "13.59.214.194"
-PORT = "5432"
+PASSWORD = "xyz9uDFshJduKqXbC9efMjqM"
+HOST = "0.0.0.0"
+PORT = "32032"
 DATABASE = "postgres"
 
 

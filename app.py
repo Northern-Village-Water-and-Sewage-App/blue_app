@@ -119,4 +119,4 @@ def remove_driver(driver_user_name):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=1234)  # TODO: Modify this before uploading to the server
+    app.run(debug=True, host='0.0.0.0', port=32132)  # TODO: Modify this before uploading to the server
