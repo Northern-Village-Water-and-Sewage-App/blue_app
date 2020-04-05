@@ -43,7 +43,8 @@ begin
         SELECT 6, u.pk, 2
         from sewage_tank_readings tr
                  join residents u on tr.tank_owner_fk = u.pk
-        where tr.pk = new.pk;
+        where tr.pk = new.pk
+        on conflict do nothing;
     end if;
     return new;
 end;
@@ -65,7 +66,8 @@ begin
         SELECT 6, u.pk, 1
         from water_tank_readings tr
                  join residents u on tr.tank_owner_fk = u.pk
-        where tr.pk = new.pk;
+        where tr.pk = new.pk
+        on conflict do nothing;
     end if;
     return new;
 end;
@@ -75,6 +77,21 @@ $$;
 ALTER FUNCTION public.add_to_water_worklist() OWNER TO postgres;
 
 --
+-- Name: does_user_already_exist_in_the_worklist_with_tank_type(integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.does_user_already_exist_in_the_worklist_with_tank_type(user_pk integer, tank_type_pk integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+begin
+    return exists(select 1 from manager_worklist where resident_fk = user_pk and tank_type_fk = tank_type_pk);
+end;
+$$;
+
+
+ALTER FUNCTION public.does_user_already_exist_in_the_worklist_with_tank_type(user_pk integer, tank_type_pk integer) OWNER TO postgres;
+
+--
 -- Name: is_caution_level_sewage_level(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -82,8 +99,8 @@ CREATE FUNCTION public.is_caution_level_sewage_level(reading_pk integer) RETURNS
     LANGUAGE plpgsql
     AS $$
 begin
-    return QUERY select (lower(tr.status) = 'warning' or lower(tr.status) = 'critical')
-                 from sewage_tank_readings as tr
+    return QUERY select (lower(tr.status) = 'warning' or lower(tr.status) = 'critical') from sewage_tank_readings as tr
+                          join residents r on tr.tank_owner_fk = r.pk
                  where tr.pk = reading_pk;
 end;
 $$;
@@ -149,7 +166,8 @@ CREATE TABLE public.residents (
     pin text,
     house_number text,
     water_tank_fk integer,
-    sewage_tank_fk integer
+    sewage_tank_fk integer,
+    resident_disabled boolean DEFAULT false
 );
 
 
@@ -278,7 +296,8 @@ ALTER TABLE public.time_estimates OWNER TO postgres;
 --
 
 CREATE VIEW public.app_worklist AS
- SELECT r.username,
+ SELECT manager_worklist.pk,
+    r.username,
     r.house_number,
     tt.tank_type,
     te.estimate,
@@ -813,14 +832,8 @@ COPY public.drivers (pk, username, pin) FROM stdin;
 --
 
 COPY public.manager_worklist (pk, resident_fk, time_estimate_fk, tank_type_fk, "timestamp", completed) FROM stdin;
-64	1	6	1	2020-04-04 22:27:00.70146	f
-65	1	6	1	2020-04-04 22:27:42.496148	f
-66	1	6	1	2020-04-04 22:28:23.392708	f
-67	1	6	2	2020-04-04 22:44:34.437063	f
-68	1	6	2	2020-04-04 22:50:10.965719	f
-69	1	6	2	2020-04-04 22:50:21.741862	f
-70	1	6	2	2020-04-04 22:50:29.93514	f
-71	1	6	2	2020-04-04 22:50:59.283669	f
+93	1	6	2	2020-04-05 16:58:19.540723	f
+98	1	6	1	2020-04-05 17:06:19.146264	f
 \.
 
 
@@ -857,8 +870,8 @@ COPY public.reports (pk, complaint_type_fk, company_fk, complaint, "timestamp") 
 -- Data for Name: residents; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.residents (pk, username, pin, house_number, water_tank_fk, sewage_tank_fk) FROM stdin;
-1	Zebedee	555	H-123	1	1
+COPY public.residents (pk, username, pin, house_number, water_tank_fk, sewage_tank_fk, resident_disabled) FROM stdin;
+1	Zebedee	555	H-123	1	1	f
 \.
 
 
@@ -867,22 +880,30 @@ COPY public.residents (pk, username, pin, house_number, water_tank_fk, sewage_ta
 --
 
 COPY public.sewage_tank_readings (pk, status, "timestamp", tank_owner_fk, tank_model_fk) FROM stdin;
-10	1	2020-04-04 22:15:29.667857	1	1
-11	2	2020-04-04 22:28:46.840399	1	1
-12	1	2020-04-04 22:28:55.50245	1	1
-13	0	2020-04-04 22:29:00.846408	1	1
-14	0	2020-04-04 22:36:10.045876	1	1
-15	1	2020-04-04 22:36:16.784795	1	1
-16	2	2020-04-04 22:36:23.494265	1	1
-17	3	2020-04-04 22:36:29.056719	1	1
-18	WARNING	2020-04-04 22:44:34.437063	1	1
-19	OK	2020-04-04 22:44:49.542092	1	1
-20	CRITICAL	2020-04-04 22:45:17.312642	1	1
-21	warning	2020-04-04 22:50:10.965719	1	1
-22	warning	2020-04-04 22:50:21.741862	1	1
-23	critical	2020-04-04 22:50:29.93514	1	1
-24	CRITICAL	2020-04-04 22:50:59.283669	1	1
-25	OK	2020-04-04 22:51:05.835107	1	1
+39	warning	2020-04-05 00:29:05.281484	1	1
+40	warning	2020-04-05 01:26:59.044472	1	1
+41	warning	2020-04-05 01:27:13.094604	1	1
+42	warning	2020-04-05 01:27:21.586976	1	1
+43	warning	2020-04-05 01:27:49.917601	1	1
+44	warning	2020-04-05 01:28:04.152481	1	1
+45	warning	2020-04-05 01:28:25.898618	1	1
+46	warning	2020-04-05 01:30:38.305772	1	1
+47	warning	2020-04-05 01:30:49.794615	1	1
+48	warning	2020-04-05 01:44:53.927237	1	1
+49	warning	2020-04-05 01:45:00.539472	1	1
+50	2	2020-04-05 03:07:49.282815	1	1
+51	WARNING	2020-04-05 03:08:13.240092	1	1
+52	CRITICAL	2020-04-05 05:54:25.607108	1	1
+53	WARNING	2020-04-05 05:56:32.664959	1	1
+54	CRITICAL	2020-04-05 05:58:55.309854	1	1
+55	WARNING	2020-04-05 05:59:26.088904	1	1
+56	WARNING	2020-04-05 05:59:28.153804	1	1
+57	OK	2020-04-05 05:59:44.334058	1	1
+58	OK	2020-04-05 05:59:46.531814	1	1
+59	warning	2020-04-05 15:00:43.690642	1	1
+60	warning	2020-04-05 15:01:46.208536	1	1
+62	warning	2020-04-05 16:58:19.540723	1	1
+63	warning	2020-04-05 16:58:26.157192	1	1
 \.
 
 
@@ -928,6 +949,15 @@ COPY public.water_tank_readings (pk, current_height, "timestamp", tank_owner_fk,
 109	50	2020-04-04 22:27:00.70146	1	1
 110	69	2020-04-04 22:27:42.496148	1	1
 111	0	2020-04-04 22:28:23.392708	1	1
+112	55	2020-04-04 23:39:24.791769	1	1
+113	2	2020-04-05 03:09:08.577022	1	1
+114	2	2020-04-05 05:54:30.259368	1	1
+115	2	2020-04-05 05:54:32.339234	1	1
+116	60	2020-04-05 17:04:52.311406	1	1
+117	10	2020-04-05 17:05:01.145593	1	1
+118	10	2020-04-05 17:05:52.182798	1	1
+119	10	2020-04-05 17:06:19.146264	1	1
+120	10	2020-04-05 17:06:24.534402	1	1
 \.
 
 
@@ -967,7 +997,7 @@ SELECT pg_catalog.setval('public.drivers_pk_seq', 13, true);
 -- Name: manager_worklist_pk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.manager_worklist_pk_seq', 71, true);
+SELECT pg_catalog.setval('public.manager_worklist_pk_seq', 99, true);
 
 
 --
@@ -1002,7 +1032,7 @@ SELECT pg_catalog.setval('public.residents_pk_seq', 13, true);
 -- Name: sewage_tank_readings_pk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.sewage_tank_readings_pk_seq', 25, true);
+SELECT pg_catalog.setval('public.sewage_tank_readings_pk_seq', 63, true);
 
 
 --
@@ -1016,7 +1046,7 @@ SELECT pg_catalog.setval('public.sewage_tanks_models_pk_seq', 2, true);
 -- Name: tank_readings_pk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.tank_readings_pk_seq', 111, true);
+SELECT pg_catalog.setval('public.tank_readings_pk_seq', 120, true);
 
 
 --
@@ -1062,6 +1092,14 @@ ALTER TABLE ONLY public.complaint_types
 
 ALTER TABLE ONLY public.drivers
     ADD CONSTRAINT drivers_pk PRIMARY KEY (pk);
+
+
+--
+-- Name: manager_worklist manager_worklist_resident_fk_tank_type_fk_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.manager_worklist
+    ADD CONSTRAINT manager_worklist_resident_fk_tank_type_fk_key UNIQUE (resident_fk, tank_type_fk);
 
 
 --
