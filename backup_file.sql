@@ -356,6 +356,43 @@ ALTER SEQUENCE public.complaint_types_pk_seq OWNED BY public.complaint_types.pk;
 
 
 --
+-- Name: delivery_completed; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.delivery_completed (
+    pk integer NOT NULL,
+    resident_fk integer,
+    tank_type_fk integer,
+    time_at_worklist_added timestamp without time zone,
+    "timestamp" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.delivery_completed OWNER TO postgres;
+
+--
+-- Name: delivery_completed_pk_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.delivery_completed_pk_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.delivery_completed_pk_seq OWNER TO postgres;
+
+--
+-- Name: delivery_completed_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.delivery_completed_pk_seq OWNED BY public.delivery_completed.pk;
+
+
+--
 -- Name: drivers_pk_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -710,6 +747,13 @@ ALTER TABLE ONLY public.complaint_types ALTER COLUMN pk SET DEFAULT nextval('pub
 
 
 --
+-- Name: delivery_completed pk; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.delivery_completed ALTER COLUMN pk SET DEFAULT nextval('public.delivery_completed_pk_seq'::regclass);
+
+
+--
 -- Name: drivers pk; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -814,6 +858,15 @@ COPY public.complaint_types (pk, complaint_type) FROM stdin;
 3	Malfunctioning Lights
 2	Broken Lights
 4	No Need for Call
+\.
+
+
+--
+-- Data for Name: delivery_completed; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.delivery_completed (pk, resident_fk, tank_type_fk, time_at_worklist_added, "timestamp") FROM stdin;
+1	1	2	2020-04-05 16:58:19.540723	2020-04-05 17:35:02.577679
 \.
 
 
@@ -987,6 +1040,13 @@ SELECT pg_catalog.setval('public.complaint_types_pk_seq', 8, true);
 
 
 --
+-- Name: delivery_completed_pk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.delivery_completed_pk_seq', 1, true);
+
+
+--
 -- Name: drivers_pk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1084,6 +1144,14 @@ ALTER TABLE ONLY public.companies
 
 ALTER TABLE ONLY public.complaint_types
     ADD CONSTRAINT complaint_types_pk PRIMARY KEY (pk);
+
+
+--
+-- Name: delivery_completed delivery_completed_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.delivery_completed
+    ADD CONSTRAINT delivery_completed_pk PRIMARY KEY (pk);
 
 
 --
@@ -1205,6 +1273,13 @@ CREATE UNIQUE INDEX complaint_types_pk_uindex ON public.complaint_types USING bt
 
 
 --
+-- Name: delivery_completed_pk_uindex; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX delivery_completed_pk_uindex ON public.delivery_completed USING btree (pk);
+
+
+--
 -- Name: drivers_new_username_uindex; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1286,6 +1361,22 @@ CREATE TRIGGER add_to_sewage_worklist AFTER INSERT ON public.sewage_tank_reading
 --
 
 CREATE TRIGGER add_to_water_worklist AFTER INSERT ON public.water_tank_readings FOR EACH ROW EXECUTE FUNCTION public.add_to_water_worklist();
+
+
+--
+-- Name: delivery_completed delivery_completed_residents_pk_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.delivery_completed
+    ADD CONSTRAINT delivery_completed_residents_pk_fk FOREIGN KEY (resident_fk) REFERENCES public.residents(pk);
+
+
+--
+-- Name: delivery_completed delivery_completed_tank_types_pk_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.delivery_completed
+    ADD CONSTRAINT delivery_completed_tank_types_pk_fk FOREIGN KEY (tank_type_fk) REFERENCES public.tank_types(pk);
 
 
 --
