@@ -25,7 +25,8 @@ def demand_completed(pk):
     timestamp = df['timestamp'][0]
     print(timestamp)
     execute_command(f"insert into delivery_completed (resident_fk, tank_type_fk, time_at_worklist_added) values ({resident_fk}, {tank_type_fk}, '{timestamp}');")
-    return run_select_for_json("select * from app_worklist")
+    execute_command(f"delete from manager_worklist where pk = {pk}")
+    return run_select_for_json("select * from app_completed_worklist")
 
 
 @app.route('/get_reports/')
