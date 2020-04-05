@@ -19,12 +19,15 @@ def update_demand(pk, time_estimate_fk):
 
 @app.route('/demand_completed/<pk>')
 def demand_completed(pk):
-    df = get_query_result_as_df(f"select resident_fk, tank_type_fk, timestamp from manager_worklist where pk = {pk}")
+    df = get_query_result_as_df(
+        f"select resident_fk, tank_type_fk, timestamp from manager_worklist where pk = {pk}")
     resident_fk = df['resident_fk'][0]
     tank_type_fk = df['tank_type_fk'][0]
     timestamp = df['timestamp'][0]
     print(timestamp)
-    execute_command(f"insert into completed_worklist (resident_fk, tank_type_fk, time_at_worklist_added) values ({resident_fk}, {tank_type_fk}, '{timestamp}');")
+    execute_command(
+        f"insert into completed_worklist (resident_fk, tank_type_fk, time_at_worklist_added) "
+        f"values ({resident_fk}, {tank_type_fk}, '{timestamp}');")
     execute_command(f"delete from manager_worklist where pk = {pk}")
     return run_select_for_json("select * from app_completed_worklist")
 
@@ -51,7 +54,8 @@ def enable_resident(resident_username):
 @app.route('/add_report/<complaint_type_fk>/<company_fk>/<complaint>/')
 def add_report(complaint_type_fk, company_fk, complaint):
     execute_command(
-        f"insert into reports (complaint_type_fk, company_fk, complaint) values ({complaint_type_fk}, {company_fk}, '{complaint}')")
+        f"insert into reports (complaint_type_fk, company_fk, complaint) "
+        f"values ({complaint_type_fk}, {company_fk}, '{complaint}')")
     return run_select_for_json("select * from app_reports;")
 
 
@@ -75,20 +79,21 @@ def get_user(username):
 
 @app.route('/get_tank_info/<username>', methods=['GET'])
 def get_tank_info(username):
-    return run_select_for_json(f'select '
-                               f'username, '
-                               f'status as sewage_tank_status, '
-                               f'to_char(str.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as sewage_tank_timestamp, '
-                               f'wtr.current_height/wtm.tank_height * 100 as water_tank_height_percentage, '
-                               f'wtr.current_height as water_tank_height, '
-                               f'to_char(wtr.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as water_tank_timestamp '
-                               f'from residents join sewage_tank_readings str on '
-                               f'residents.pk = str.tank_owner_fk '
-                               f'join water_tank_readings wtr on residents.pk = wtr.tank_owner_fk '
-                               f'join water_tanks_models wtm on residents.water_tank_fk = wtm.pk '
-                               f'where username = \'{username}\' '
-                               f'order by str.timestamp, wtr.timestamp desc '
-                               f'limit 1;')
+    return \
+        run_select_for_json(f'select '
+                            f'username, '
+                            f'status as sewage_tank_status, '
+                            f'to_char(str.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as sewage_tank_timestamp, '
+                            f'wtr.current_height/wtm.tank_height * 100 as water_tank_height_percentage, '
+                            f'wtr.current_height as water_tank_height, '
+                            f'to_char(wtr.timestamp, \'DD Mon YYYY HH:MI:SSPM\') as water_tank_timestamp '
+                            f'from residents join sewage_tank_readings str on '
+                            f'residents.pk = str.tank_owner_fk '
+                            f'join water_tank_readings wtr on residents.pk = wtr.tank_owner_fk '
+                            f'join water_tanks_models wtm on residents.water_tank_fk = wtm.pk '
+                            f'where username = \'{username}\' '
+                            f'order by str.timestamp, wtr.timestamp desc '
+                            f'limit 1;')
 
 
 @app.route('/get_work_list/', methods=['GET'])
@@ -113,7 +118,8 @@ def add_driver(user_name, user_pin):
 @app.route('/add_resident/<user_name>/<house_number>/<user_pin>/<water_tank_fk>/<sewage_tank_fk>')
 def add_resident(user_name, house_number, user_pin, water_tank_fk, sewage_tank_fk):
     execute_command(
-        f"insert into residents (username, house_number, pin, water_tank_fk, sewage_tank_fk) values ('{user_name}', {house_number}, '{user_pin}', {water_tank_fk}, {sewage_tank_fk})")
+        f"insert into residents (username, house_number, pin, water_tank_fk, sewage_tank_fk) "
+        f"values ('{user_name}', {house_number}, '{user_pin}', {water_tank_fk}, {sewage_tank_fk})")
     return run_select_for_json('select * from residents;')
 
 
