@@ -19,7 +19,11 @@ def update_demand(pk, time_estimate_fk):
 
 @app.route('/demand_completed/<pk>')
 def demand_completed(pk):
-    execute_command(f'delete from manager_worklist where pk = {pk};')
+    df = get_query_result_as_df(f"select resident_fk, tank_type_fk, timestamp from manager_worklist where pk = {pk}")
+    resident_fk = df['resident_fk'][0]
+    tank_type_fk = df['tank_type_fk'][0]
+    timestamp = df['timestamp'][0]
+    execute_command(f"insert into delivery_completed (resident_fk, tank_type_fk, time_at_worklist_added) values ({resident_fk}, {tank_type_fk}, {timestamp});")
     return run_select_for_json("select * from app_worklist")
 
 
