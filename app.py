@@ -87,9 +87,7 @@ def get_tank_info(username):
 
 @app.route('/get_work_list/', methods=['GET'])
 def get_work_list():
-    df = get_query_result_as_df('select * from app_worklist')
-    max_times = df.groupby(['username', 'tank_type']).timestamp.transform(max)
-    return df.loc[df.timestamp == max_times].to_json(orient='records')
+    return run_select_for_json('select * from app_worklist')
 
 
 @app.route('/add_manager/<user_name>/<user_pin>')
