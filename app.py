@@ -105,7 +105,7 @@ def get_work_list():
 def get_work_list_estimate_for_resident(username):
     return run_select_for_json(f'select username, estimate, tank_type from '
                                f'app_get_estimates_for_all_residents '
-                               f'where username = {username}')
+                               f'where username = \'{username}\'')
 
 
 @app.route('/add_manager/<user_name>/<user_pin>')
