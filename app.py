@@ -12,7 +12,7 @@ def index():
 
 @app.route('/get_monthly_stats/')
 def get_monthly_stats():
-    return run_select_for_json('select * from get_monthly_stats')
+    return run_select_for_json('select * from app_monthly_stats')
 
 
 @app.route('/update_demand/<pk>/<time_estimate_fk>')
