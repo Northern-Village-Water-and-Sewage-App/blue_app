@@ -131,6 +131,112 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: completed_worklist; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.completed_worklist (
+    pk integer NOT NULL,
+    resident_fk integer,
+    tank_type_fk integer,
+    time_at_worklist_added timestamp without time zone,
+    "timestamp" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.completed_worklist OWNER TO postgres;
+
+--
+-- Name: residents; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.residents (
+    pk integer NOT NULL,
+    username text,
+    pin text,
+    house_number text,
+    water_tank_fk integer,
+    sewage_tank_fk integer,
+    resident_disabled boolean DEFAULT false
+);
+
+
+ALTER TABLE public.residents OWNER TO postgres;
+
+--
+-- Name: tank_types; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.tank_types (
+    pk integer NOT NULL,
+    tank_type text
+);
+
+
+ALTER TABLE public.tank_types OWNER TO postgres;
+
+--
+-- Name: app_completed_worklist; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.app_completed_worklist AS
+ SELECT dc.pk,
+    r.username,
+    r.house_number,
+    tt.tank_type,
+    dc.time_at_worklist_added,
+    dc."timestamp"
+   FROM ((public.completed_worklist dc
+     JOIN public.residents r ON ((dc.resident_fk = r.pk)))
+     JOIN public.tank_types tt ON ((dc.tank_type_fk = tt.pk)));
+
+
+ALTER TABLE public.app_completed_worklist OWNER TO postgres;
+
+--
+-- Name: manager_worklist; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.manager_worklist (
+    pk integer NOT NULL,
+    resident_fk integer,
+    time_estimate_fk integer,
+    tank_type_fk integer,
+    "timestamp" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    completed boolean DEFAULT false
+);
+
+
+ALTER TABLE public.manager_worklist OWNER TO postgres;
+
+--
+-- Name: time_estimates; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.time_estimates (
+    pk integer NOT NULL,
+    estimate text
+);
+
+
+ALTER TABLE public.time_estimates OWNER TO postgres;
+
+--
+-- Name: app_get_estimates_for_all_residents; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.app_get_estimates_for_all_residents AS
+ SELECT r.username,
+    te.estimate,
+    tt.tank_type
+   FROM (((public.manager_worklist
+     JOIN public.residents r ON ((manager_worklist.resident_fk = r.pk)))
+     JOIN public.time_estimates te ON ((manager_worklist.time_estimate_fk = te.pk)))
+     JOIN public.tank_types tt ON ((manager_worklist.tank_type_fk = tt.pk)));
+
+
+ALTER TABLE public.app_get_estimates_for_all_residents OWNER TO postgres;
+
+--
 -- Name: drivers; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -157,23 +263,6 @@ CREATE TABLE public.managers (
 ALTER TABLE public.managers OWNER TO postgres;
 
 --
--- Name: residents; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.residents (
-    pk integer NOT NULL,
-    username text,
-    pin text,
-    house_number text,
-    water_tank_fk integer,
-    sewage_tank_fk integer,
-    resident_disabled boolean DEFAULT false
-);
-
-
-ALTER TABLE public.residents OWNER TO postgres;
-
---
 -- Name: app_login; Type: VIEW; Schema: public; Owner: postgres
 --
 
@@ -195,6 +284,63 @@ UNION
 
 
 ALTER TABLE public.app_login OWNER TO postgres;
+
+--
+-- Name: app_monthly_stats; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.app_monthly_stats AS
+ SELECT this_month_all.this_month_all_avg,
+    this_month_all_avg_water.this_month_all_avg_water,
+    this_month_all_avg_sewage.this_month_all_avg_sewage,
+    this_month_all_calls.this_month_all_calls,
+    this_month_all_calls_water.this_month_all_calls_water,
+    this_month_all_calls_sewage.this_month_all_calls_sewage,
+    previous_all.previous_all_avg,
+    previous_all_sewage.previous_all_sewage_avg,
+    previous_all_water.previous_all_water_avg,
+    previous_all_calls.previous_all_calls,
+    previous_all_calls_water.previous_all_calls_water,
+    previous_all_calls_sewage.previous_all_calls_sewage
+   FROM ( SELECT round(((date_part('epoch'::text, avg(age(completed_worklist."timestamp", completed_worklist.time_at_worklist_added))) / ((60 * 60))::double precision))::numeric, 2) AS this_month_all_avg
+           FROM public.completed_worklist
+          WHERE ((date_part('month'::text, completed_worklist.time_at_worklist_added) = date_part('month'::text, CURRENT_TIMESTAMP)) AND (date_part('year'::text, completed_worklist.time_at_worklist_added) = date_part('year'::text, CURRENT_TIMESTAMP)))) this_month_all,
+    ( SELECT round(((date_part('epoch'::text, avg(age(completed_worklist."timestamp", completed_worklist.time_at_worklist_added))) / ((60 * 60))::double precision))::numeric, 2) AS this_month_all_avg_water
+           FROM public.completed_worklist
+          WHERE ((date_part('month'::text, completed_worklist.time_at_worklist_added) = date_part('month'::text, CURRENT_TIMESTAMP)) AND (date_part('year'::text, completed_worklist.time_at_worklist_added) = date_part('year'::text, CURRENT_TIMESTAMP)) AND (completed_worklist.tank_type_fk = 1))) this_month_all_avg_water,
+    ( SELECT round(((date_part('epoch'::text, avg(age(completed_worklist."timestamp", completed_worklist.time_at_worklist_added))) / ((60 * 60))::double precision))::numeric, 2) AS this_month_all_avg_sewage
+           FROM public.completed_worklist
+          WHERE ((date_part('month'::text, completed_worklist.time_at_worklist_added) = date_part('month'::text, CURRENT_TIMESTAMP)) AND (date_part('year'::text, completed_worklist.time_at_worklist_added) = date_part('year'::text, CURRENT_TIMESTAMP)) AND (completed_worklist.tank_type_fk = 1))) this_month_all_avg_sewage,
+    ( SELECT count(1) AS this_month_all_calls
+           FROM public.completed_worklist
+          WHERE ((completed_worklist.time_at_worklist_added >= date_trunc('month'::text, (CURRENT_DATE - '2 mons'::interval month))) AND (completed_worklist.time_at_worklist_added < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)))) this_month_all_calls,
+    ( SELECT count(1) AS this_month_all_calls_water
+           FROM public.completed_worklist
+          WHERE ((completed_worklist.time_at_worklist_added >= date_trunc('month'::text, (CURRENT_DATE - '2 mons'::interval month))) AND (completed_worklist.time_at_worklist_added < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (completed_worklist.tank_type_fk = 1))) this_month_all_calls_water,
+    ( SELECT count(1) AS this_month_all_calls_sewage
+           FROM public.completed_worklist
+          WHERE ((completed_worklist.time_at_worklist_added >= date_trunc('month'::text, (CURRENT_DATE - '2 mons'::interval month))) AND (completed_worklist.time_at_worklist_added < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (completed_worklist.tank_type_fk = 2))) this_month_all_calls_sewage,
+    ( SELECT round(((date_part('epoch'::text, avg(age(completed_worklist."timestamp", completed_worklist.time_at_worklist_added))) / ((60 * 60))::double precision))::numeric, 2) AS previous_all_avg
+           FROM public.completed_worklist
+          WHERE ((completed_worklist.time_at_worklist_added >= date_trunc('month'::text, (CURRENT_DATE - '2 mons'::interval month))) AND (completed_worklist.time_at_worklist_added < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)))) previous_all,
+    ( SELECT round(((date_part('epoch'::text, avg(age(completed_worklist."timestamp", completed_worklist.time_at_worklist_added))) / ((60 * 60))::double precision))::numeric, 2) AS previous_all_sewage_avg
+           FROM public.completed_worklist
+          WHERE ((completed_worklist.time_at_worklist_added >= date_trunc('month'::text, (CURRENT_DATE - '2 mons'::interval month))) AND (completed_worklist.time_at_worklist_added < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (completed_worklist.tank_type_fk = 2))) previous_all_sewage,
+    ( SELECT round(((date_part('epoch'::text, avg(age(completed_worklist."timestamp", completed_worklist.time_at_worklist_added))) / ((60 * 60))::double precision))::numeric, 2) AS previous_all_water_avg
+           FROM public.completed_worklist
+          WHERE ((completed_worklist.time_at_worklist_added >= date_trunc('month'::text, (CURRENT_DATE - '2 mons'::interval month))) AND (completed_worklist.time_at_worklist_added < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (completed_worklist.tank_type_fk = 1))) previous_all_water,
+    ( SELECT count(1) AS previous_all_calls
+           FROM public.completed_worklist
+          WHERE ((completed_worklist.time_at_worklist_added >= date_trunc('month'::text, (CURRENT_DATE - '2 mons'::interval month))) AND (completed_worklist.time_at_worklist_added < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)))) previous_all_calls,
+    ( SELECT count(1) AS previous_all_calls_water
+           FROM public.completed_worklist
+          WHERE ((completed_worklist.time_at_worklist_added >= date_trunc('month'::text, (CURRENT_DATE - '2 mons'::interval month))) AND (completed_worklist.time_at_worklist_added < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (completed_worklist.tank_type_fk = 1))) previous_all_calls_water,
+    ( SELECT count(1) AS previous_all_calls_sewage
+           FROM public.completed_worklist
+          WHERE ((completed_worklist.time_at_worklist_added >= date_trunc('month'::text, (CURRENT_DATE - '2 mons'::interval month))) AND (completed_worklist.time_at_worklist_added < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (completed_worklist.tank_type_fk = 2))) previous_all_calls_sewage;
+
+
+ALTER TABLE public.app_monthly_stats OWNER TO postgres;
 
 --
 -- Name: companies; Type: TABLE; Schema: public; Owner: postgres
@@ -252,44 +398,16 @@ CREATE VIEW public.app_reports AS
 ALTER TABLE public.app_reports OWNER TO postgres;
 
 --
--- Name: manager_worklist; Type: TABLE; Schema: public; Owner: postgres
+-- Name: app_this_month_average; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.manager_worklist (
-    pk integer NOT NULL,
-    resident_fk integer,
-    time_estimate_fk integer,
-    tank_type_fk integer,
-    "timestamp" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    completed boolean DEFAULT false
-);
+CREATE VIEW public.app_this_month_average AS
+ SELECT (avg((completed_worklist."timestamp" - completed_worklist.time_at_worklist_added)))::text AS avg
+   FROM public.completed_worklist
+  WHERE ((date_part('month'::text, completed_worklist.time_at_worklist_added) = date_part('month'::text, CURRENT_TIMESTAMP)) AND (date_part('year'::text, completed_worklist.time_at_worklist_added) = date_part('year'::text, CURRENT_TIMESTAMP)));
 
 
-ALTER TABLE public.manager_worklist OWNER TO postgres;
-
---
--- Name: tank_types; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.tank_types (
-    pk integer NOT NULL,
-    tank_type text
-);
-
-
-ALTER TABLE public.tank_types OWNER TO postgres;
-
---
--- Name: time_estimates; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.time_estimates (
-    pk integer NOT NULL,
-    estimate text
-);
-
-
-ALTER TABLE public.time_estimates OWNER TO postgres;
+ALTER TABLE public.app_this_month_average OWNER TO postgres;
 
 --
 -- Name: app_worklist; Type: VIEW; Schema: public; Owner: postgres
@@ -356,21 +474,6 @@ ALTER SEQUENCE public.complaint_types_pk_seq OWNED BY public.complaint_types.pk;
 
 
 --
--- Name: delivery_completed; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.delivery_completed (
-    pk integer NOT NULL,
-    resident_fk integer,
-    tank_type_fk integer,
-    time_at_worklist_added timestamp without time zone,
-    "timestamp" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-
-ALTER TABLE public.delivery_completed OWNER TO postgres;
-
---
 -- Name: delivery_completed_pk_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -389,7 +492,7 @@ ALTER TABLE public.delivery_completed_pk_seq OWNER TO postgres;
 -- Name: delivery_completed_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.delivery_completed_pk_seq OWNED BY public.delivery_completed.pk;
+ALTER SEQUENCE public.delivery_completed_pk_seq OWNED BY public.completed_worklist.pk;
 
 
 --
@@ -747,10 +850,10 @@ ALTER TABLE ONLY public.complaint_types ALTER COLUMN pk SET DEFAULT nextval('pub
 
 
 --
--- Name: delivery_completed pk; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: completed_worklist pk; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.delivery_completed ALTER COLUMN pk SET DEFAULT nextval('public.delivery_completed_pk_seq'::regclass);
+ALTER TABLE ONLY public.completed_worklist ALTER COLUMN pk SET DEFAULT nextval('public.delivery_completed_pk_seq'::regclass);
 
 
 --
@@ -862,11 +965,17 @@ COPY public.complaint_types (pk, complaint_type) FROM stdin;
 
 
 --
--- Data for Name: delivery_completed; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: completed_worklist; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.delivery_completed (pk, resident_fk, tank_type_fk, time_at_worklist_added, "timestamp") FROM stdin;
-1	1	2	2020-04-05 16:58:19.540723	2020-04-05 17:35:02.577679
+COPY public.completed_worklist (pk, resident_fk, tank_type_fk, time_at_worklist_added, "timestamp") FROM stdin;
+3	1	2	2020-03-05 21:02:44	2020-04-05 23:03:06
+4	1	2	2020-03-05 21:02:44	2020-04-05 23:03:06
+5	1	2	2020-03-05 21:02:44	2020-04-05 23:03:06
+2	1	2	2020-04-05 14:58:19.54	2020-04-05 17:42:54.583091
+1	1	2	2020-04-05 14:58:19.54	2020-04-05 17:35:02.577679
+7	1	1	2020-03-05 19:02:44	2020-04-05 23:03:06
+6	1	1	2020-04-05 13:58:19.54	2020-04-05 17:35:02.577679
 \.
 
 
@@ -885,7 +994,6 @@ COPY public.drivers (pk, username, pin) FROM stdin;
 --
 
 COPY public.manager_worklist (pk, resident_fk, time_estimate_fk, tank_type_fk, "timestamp", completed) FROM stdin;
-93	1	6	2	2020-04-05 16:58:19.540723	f
 98	1	6	1	2020-04-05 17:06:19.146264	f
 \.
 
@@ -925,6 +1033,9 @@ COPY public.reports (pk, complaint_type_fk, company_fk, complaint, "timestamp") 
 
 COPY public.residents (pk, username, pin, house_number, water_tank_fk, sewage_tank_fk, resident_disabled) FROM stdin;
 1	Zebedee	555	H-123	1	1	f
+15	Jordan	687	220	1	1	f
+16	Mina	414	313	1	1	f
+14	Siasi	928	19	1	1	f
 \.
 
 
@@ -974,8 +1085,8 @@ COPY public.sewage_tanks_models (pk, tank_model, tank_height, tank_width, tank_l
 --
 
 COPY public.tank_types (pk, tank_type) FROM stdin;
-1	water
-2	sewage
+2	Sewage
+1	Water
 \.
 
 
@@ -988,7 +1099,7 @@ COPY public.time_estimates (pk, estimate) FROM stdin;
 3	Before the Break
 4	Today
 5	Tomorrow
-6	None
+6	Not Decided
 \.
 
 
@@ -1011,6 +1122,7 @@ COPY public.water_tank_readings (pk, current_height, "timestamp", tank_owner_fk,
 118	10	2020-04-05 17:05:52.182798	1	1
 119	10	2020-04-05 17:06:19.146264	1	1
 120	10	2020-04-05 17:06:24.534402	1	1
+121	40	2020-04-05 18:14:51.993678	1	1
 \.
 
 
@@ -1043,7 +1155,7 @@ SELECT pg_catalog.setval('public.complaint_types_pk_seq', 8, true);
 -- Name: delivery_completed_pk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.delivery_completed_pk_seq', 1, true);
+SELECT pg_catalog.setval('public.delivery_completed_pk_seq', 7, true);
 
 
 --
@@ -1057,7 +1169,7 @@ SELECT pg_catalog.setval('public.drivers_pk_seq', 13, true);
 -- Name: manager_worklist_pk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.manager_worklist_pk_seq', 99, true);
+SELECT pg_catalog.setval('public.manager_worklist_pk_seq', 100, true);
 
 
 --
@@ -1085,7 +1197,7 @@ SELECT pg_catalog.setval('public.reports_pk_seq', 3, true);
 -- Name: residents_pk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.residents_pk_seq', 13, true);
+SELECT pg_catalog.setval('public.residents_pk_seq', 16, true);
 
 
 --
@@ -1106,7 +1218,7 @@ SELECT pg_catalog.setval('public.sewage_tanks_models_pk_seq', 2, true);
 -- Name: tank_readings_pk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.tank_readings_pk_seq', 120, true);
+SELECT pg_catalog.setval('public.tank_readings_pk_seq', 121, true);
 
 
 --
@@ -1147,10 +1259,10 @@ ALTER TABLE ONLY public.complaint_types
 
 
 --
--- Name: delivery_completed delivery_completed_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: completed_worklist delivery_completed_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.delivery_completed
+ALTER TABLE ONLY public.completed_worklist
     ADD CONSTRAINT delivery_completed_pk PRIMARY KEY (pk);
 
 
@@ -1276,7 +1388,7 @@ CREATE UNIQUE INDEX complaint_types_pk_uindex ON public.complaint_types USING bt
 -- Name: delivery_completed_pk_uindex; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX delivery_completed_pk_uindex ON public.delivery_completed USING btree (pk);
+CREATE UNIQUE INDEX delivery_completed_pk_uindex ON public.completed_worklist USING btree (pk);
 
 
 --
@@ -1364,18 +1476,18 @@ CREATE TRIGGER add_to_water_worklist AFTER INSERT ON public.water_tank_readings 
 
 
 --
--- Name: delivery_completed delivery_completed_residents_pk_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: completed_worklist delivery_completed_residents_pk_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.delivery_completed
+ALTER TABLE ONLY public.completed_worklist
     ADD CONSTRAINT delivery_completed_residents_pk_fk FOREIGN KEY (resident_fk) REFERENCES public.residents(pk);
 
 
 --
--- Name: delivery_completed delivery_completed_tank_types_pk_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: completed_worklist delivery_completed_tank_types_pk_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.delivery_completed
+ALTER TABLE ONLY public.completed_worklist
     ADD CONSTRAINT delivery_completed_tank_types_pk_fk FOREIGN KEY (tank_type_fk) REFERENCES public.tank_types(pk);
 
 
