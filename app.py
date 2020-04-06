@@ -19,7 +19,7 @@ def get_monthly_stats():
 def add_manual_demand(username, demand_type):
     execute_command(
         f"with resident as (select pk from residents where username = '{username}') insert into manager_worklist(resident_fk, time_estimate_fk, tank_type_fk) select pk, 6, {demand_type} from resident;")
-
+    return run_select_for_json('select * from app_worklist')
 
 @app.route('/update_demand/<pk>/<time_estimate_fk>')
 def update_demand(pk, time_estimate_fk):
