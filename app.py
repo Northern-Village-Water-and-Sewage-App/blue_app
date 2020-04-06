@@ -10,6 +10,11 @@ def index():
     return jsonify(hello="Hello, World!")
 
 
+@app.route('/get_monthly_stats/')
+def get_monthly_stats():
+    return jsonify('select * from get_monthly_stats')
+
+
 @app.route('/update_demand/<pk>/<time_estimate_fk>')
 def update_demand(pk, time_estimate_fk):
     execute_command(
