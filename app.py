@@ -17,9 +17,10 @@ def get_monthly_stats():
 
 @app.route('/add_manual_demand/<username>/<demand_type>')
 def add_manual_demand(username, demand_type):
-    execute_command(
-        f"with resident as (select pk from residents where username = '{username}') insert into manager_worklist(resident_fk, time_estimate_fk, tank_type_fk) select pk, 6, {demand_type} from resident;")
+    if get_query_result_as_df(f"select 1 from residents where resident_disabled = true and username = '{username}';").empty:
+        execute_command(f"with resident as (select pk from residents where username = '{username}') insert into manager_worklist(resident_fk, time_estimate_fk, tank_type_fk) select pk, 6, {demand_type} from resident;")
     return run_select_for_json('select * from app_worklist')
+
 
 @app.route('/update_demand/<pk>/<time_estimate_fk>')
 def update_demand(pk, time_estimate_fk):
